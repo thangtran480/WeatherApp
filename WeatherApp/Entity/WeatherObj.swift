@@ -60,19 +60,27 @@ struct Weather: Decodable {
     var conditionName: String {
         switch self.id {
         case 200...232:
-            return "cloud.bolt"
+            return "cloud.bolt.rain.fill"
         case 300...321:
             return "cloud.drizzle"
-        case 500...531:
+        case 500...504:
             return "cloud.rain"
+        case 511:
+            return "cloud.snow"
+        case 511...531:
+            return "cloud.heavyrain.fill"
         case 600...622:
             return "cloud.snow"
         case 701...781:
             return "cloud.fog"
         case 800:
+            return "sun.max"
+        case 801:
+            return "cloud.sun"
+        case 802:
+            return "cloud"
+        case 803, 804:
             return "cloud.fill"
-        case 801...804:
-            return "cloud.bolt"
         default:
             return "cloud"
         }

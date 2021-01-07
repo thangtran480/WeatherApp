@@ -7,53 +7,70 @@
 //
 
 import Foundation
+import Alamofire
 
 protocol HomeModelDelegate {
     func didUpdateWeather(weatherReponseData: WeatherResponseData)
+    func didUpdateAirQuality(airQualityObj: AirQualityObj)
 }
 
 class HomeModel {
     
-    let url: String = "https://api.openweathermap.org/data/2.5/onecall?exclude=minutely&appid=27a7df37e78c33a32df2d5ac86d82ede&lang=vi&units=metric"
     var delegate: HomeModelDelegate? = nil
     
-    func fetchUrlString(cityName: String) {
-        let urlString = "\(url)&q=\(cityName)"
+    func fetchUrlStringWeather(cityName: String) {
+        let urlString = "\(URL_OPENWEATHERMAP)&q=\(cityName)"
         performWeather(urlString: urlString)
     }
     
-    func fetchUrlString(lat: Double, long: Double) {
-        let urlString = "\(url)&lat=\(lat)&lon=\(long)&exclude=minutely,alerts"
+    func fetchUrlStringWeather(lat: Double, long: Double) {
+        let urlString = "\(URL_OPENWEATHERMAP)&lat=\(lat)&lon=\(long)&exclude=minutely,alerts"
         performWeather(urlString: urlString)
     }
     func performWeather(urlString: String) {
-        if let url = URL(string: urlString){
-            let session = URLSession(configuration: .default)
-            
-            let task = session.dataTask(with: url){(data, urlResponse, error) in
-                if (error != nil){
-                    return
-                }
-                if let safeData = data{
-                    if let weatherReponseData = self.parseJSON(data: safeData){
-                        self.delegate?.didUpdateWeather(weatherReponseData: weatherReponseData)
+        Alamofire.request(urlString, method: .get)
+            .responseData { response in
+                let statusCode = response.response?.statusCode ?? 0
+                switch statusCode{
+                case 200:
+                    if let data = response.data {
+                        let weatherReponseData = try? JSONDecoder().decode(WeatherResponseData.self, from: data)
+                        if weatherReponseData != nil{
+                            self.delegate?.didUpdateWeather(weatherReponseData: weatherReponseData!)
+                        }
                     }
+                    break
+                default: break
                 }
             }
-            
-            task.resume()
-        }
     }
-    func parseJSON(data: Data) -> WeatherResponseData?{
-        let decoder = JSONDecoder()
-        do{
-            let decodeData = try decoder.decode(WeatherResponseData.self, from: data)
-                        
-            return decodeData
-            
-        }catch{
-            print(error)
-            return nil
-        }
+    
+    func fetchUrlStringAir(cityName: String) {
+        let urlString = String(format: URL_AIRQUALITY, cityName)
+        print(urlString)
+    }
+    
+    func fetchUrlStringAir(lat: Double, long: Double){
+        let content = "geo:\(lat);\(long)"
+        let urlString = String(format: URL_AIRQUALITY, content)
+        performAirQuality(urlString: urlString)
+    }
+    
+    func performAirQuality(urlString: String){
+        Alamofire.request(urlString, method: .get)
+            .responseJSON { response in
+                let statusCode = response.response?.statusCode ?? 0
+                switch statusCode{
+                case 200:
+                    if let result = response.result.value as? NSDictionary{
+                        let data = result.object(forKey: "data") as! NSDictionary
+                        let aqi = data.object(forKey: "aqi") as! Int
+                        let airQualityObj = AirQualityObj(aqi: aqi)
+                        self.delegate?.didUpdateAirQuality(airQualityObj: airQualityObj)
+                    }
+                    break
+                default: break
+                }
+            }
     }
 }

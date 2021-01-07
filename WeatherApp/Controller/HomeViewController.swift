@@ -11,18 +11,27 @@ import CoreLocation
 
 class HomeViewController: UIViewController {
     
-    let maxHeaderHeight: CGFloat = 200.0
-    let minHeaderHeight: CGFloat = 44.0
+    let maxHeaderHeight: CGFloat = 250.0
+    let minHeaderHeight: CGFloat = 50.0
     let maxCityNameHeight: CGFloat = 40.0
     let minCityNameHeight: CGFloat = 8.0
     
     @IBOutlet weak var tempWeatherLabel: UILabel!
+    @IBOutlet weak var cLabel: UILabel!
+    @IBOutlet weak var celsiusMax: UILabel!
+    @IBOutlet weak var celsiusMin: UILabel!
     @IBOutlet weak var weatherDesLabel: UILabel!
     @IBOutlet weak var tableWeatherDayly: UITableView!
     
     @IBOutlet weak var headerHeightConstraint: NSLayoutConstraint!
-    var weatherReponseData: WeatherResponseData? = nil
+    
     @IBOutlet weak var tabelWeatherHourly: UICollectionView!
+    @IBOutlet weak var imageAirQualyti: UIImageView!
+    @IBOutlet weak var aqiLabel: UILabel!
+    @IBOutlet weak var aqiView: UIView!
+    @IBOutlet weak var airQualityDesLabel: UILabel!
+    @IBOutlet weak var viewAirQuality: UIView!
+    @IBOutlet weak var viewWeather: UIView!
     
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var cityNameLabelConstraint: NSLayoutConstraint!
@@ -34,11 +43,17 @@ class HomeViewController: UIViewController {
     @IBOutlet weak var uviLabel: UILabel!
     @IBOutlet weak var visibilityLabel: UILabel!
     
+    var weatherReponseData: WeatherResponseData? = nil
+    var airQualityObj: AirQualityObj? = nil
     var homeModel: HomeModel = HomeModel()
     let locationManager = CLLocationManager()
     private var previousScrollOffset : CGFloat = 0.0
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        aqiView.layer.cornerRadius = 12
+        aqiView.layer.masksToBounds = true
+        
         homeModel.delegate = self
         locationManager.delegate = self
         
@@ -54,35 +69,65 @@ class HomeViewController: UIViewController {
         locationManager.startUpdatingLocation()
         
         scrollView.delegate = self
+        
+        let tap = UITapGestureRecognizer(target: self, action: #selector(self.onCickViewAirQuality(_:)))
+        viewAirQuality.addGestureRecognizer(tap)
     }
 
 }
 
 extension HomeViewController: HomeModelDelegate{
     func didUpdateWeather(weatherReponseData: WeatherResponseData) {
-        DispatchQueue.main.async {
-            self.weatherReponseData = weatherReponseData
-            self.tempWeatherLabel.text = "\(weatherReponseData.current.temp)"
-            self.weatherDesLabel.text = "\(weatherReponseData.current.weather[0].description)"
-            self.sunriseLabel.text = "\(weatherReponseData.current.sunriseTimeString.components(separatedBy: " ")[1])"
-            self.sunsetLabel.text = "\(weatherReponseData.current.sunsetTimeString.components(separatedBy: " ")[1])"
-            self.humidityLabel.text = "\(weatherReponseData.current.humidity)"
-            self.visibilityLabel.text = "\(weatherReponseData.current.visibility)"
-            self.uviLabel.text = "\(weatherReponseData.current.uvi)"
-            self.feelsLikeLabel.text = String(format: "%.1f", weatherReponseData.current.feels_like)
-            self.tableWeatherDayly.reloadData()
-            self.tabelWeatherHourly.reloadData()
-        }
         
+        self.weatherReponseData = weatherReponseData
+        self.tempWeatherLabel.text = String(format: "%.0f", weatherReponseData.current.temp)
+        self.weatherDesLabel.text = "\(weatherReponseData.current.weather[0].description)"
+        self.sunriseLabel.text = "\(weatherReponseData.current.sunriseTimeString.components(separatedBy: " ")[1])"
+        self.sunsetLabel.text = "\(weatherReponseData.current.sunsetTimeString.components(separatedBy: " ")[1])"
+        self.humidityLabel.text = "\(weatherReponseData.current.humidity)"
+        self.visibilityLabel.text = "\(weatherReponseData.current.visibility)"
+        self.uviLabel.text = "\(weatherReponseData.current.uvi)"
+        self.feelsLikeLabel.text = String(format: "%.1f", weatherReponseData.current.feels_like)
+//        self.uviLabel.text = "\(weatherReponseData.)"
+        self.celsiusMax.text = String(format: "%.0f", weatherReponseData.daily[0].temp.max)
+        self.celsiusMin.text = String(format: "%.0f", weatherReponseData.daily[0].temp.min)
+    
+        self.tableWeatherDayly.reloadData()
+        self.tabelWeatherHourly.reloadData()
+    
+    }
+    func didUpdateAirQuality(airQualityObj: AirQualityObj){
+        self.airQualityObj = airQualityObj
+        
+        imageAirQualyti.image = UIImage(named: airQualityObj.imageString)
+        aqiLabel.text = "\(airQualityObj.aqi)"
+        aqiView.backgroundColor = airQualityObj.color
+        airQualityDesLabel.text = airQualityObj.status
     }
 }
+
+extension HomeViewController{
+    @objc func onCickViewAirQuality(_ sender: UITapGestureRecognizer? = nil){
+        
+        let status: String = self.airQualityObj?.status ?? ""
+            
+        let description: String = self.airQualityObj?.description ?? ""
+        let color: UIColor = self.airQualityObj?.color ?? UIColor.green
+        
+        let alert = UIAlertController(title: "\(status)", message: "\(description)", preferredStyle: UIAlertController.Style.alert)
+        alert.addAction(UIAlertAction(title: "Đồng ý", style: UIAlertAction.Style.default, handler: nil))
+        self.present(alert, animated: true, completion: nil)
+    }
+}
+
 extension HomeViewController: CLLocationManagerDelegate{
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]){
         if let location = locations.last{
             locationManager.stopUpdatingLocation()
             let lat = location.coordinate.latitude
             let lon = location.coordinate.longitude
-            self.homeModel.fetchUrlString(lat: lat, long: lon)
+            self.homeModel.fetchUrlStringWeather(lat: lat, long: lon)
+            self.homeModel.fetchUrlStringAir(lat: lat, long: lon)
         }
     }
     
@@ -126,7 +171,7 @@ extension HomeViewController: UICollectionViewDelegate, UICollectionViewDataSour
 
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        var cell = collectionView.dequeueReusableCell(withReuseIdentifier: "HourlyCell", for: indexPath) as! HourlyCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "HourlyCell", for: indexPath) as! HourlyCell
         
         cell.weatherHourly = weatherReponseData?.hourly[indexPath.row]
         
@@ -205,8 +250,8 @@ extension HomeViewController : UIScrollViewDelegate{
         let percentage = openAmount / range
 
         cityNameLabelConstraint.constant = maxCityNameHeight*percentage + minCityNameHeight
-        tempWeatherLabel.alpha = percentage
-        weatherDesLabel.alpha = percentage
+        viewWeather.alpha = percentage
+        viewAirQuality.alpha = percentage
         
     }
 }
