@@ -6,7 +6,7 @@ let LANGUAGE = "vi"
 let URL_OPENWEATHERMAP = "https://api.openweathermap.org/data/2.5/onecall?exclude=minutely&appid=\(KEY_OPENWEATHERMAP)&lang=\(LANGUAGE)&units=metric"
 
 let NOTIFICATION_AIRQUALITY = [
-    ["status":"Tốt","description":"Chất lượng không khí được xem là đạt tiêu chuẩn, và ô nhiễm không khí coi như không hoặc gây rất ít nguy hiểm", "color": UIColor.blue, "image": "air1"],
+    ["status":"Tốt","description":"Chất lượng không khí được xem là đạt tiêu chuẩn, và ô nhiễm không khí coi như không hoặc gây rất ít nguy hiểm", "color": UIColor.green, "image": "air1"],
     ["status": "Trung bình", "description":"Chất lượng không khí ở mức chấp nhận được; tuy nhiên, một số chất gây ô nhiễm có thể ảnh hưởng tới sức khỏe của một số ít những người nhạy cảm với không khí bị ô nhiễm.", "color": UIColor.yellow, "image": "air2"],
     ["status" : "Không tốt", "description": "Nhóm người nhạy cảm có thể chịu ảnh hưởng sức khỏe. Số đông không có nguy cơ bị tác động.", "color": UIColor.orange, "image": "air3"],
     ["status" : "Ô nhiễm", "description": "Chất lượng không khí không lành mạnh, mọi người nên hạn chế ra ngoài", "color": UIColor.red, "image": "air4"],
