@@ -5,6 +5,4 @@ xcode_scheme: WeatherApp #4
 xcode_sdk: iphonesimulator14.4 #5
 
 before_install:
-  - bundle install
-  - gem install linterbot
-  - bundle exec pod install --repo-update
+  - pod install --repo-update
